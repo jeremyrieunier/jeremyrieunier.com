@@ -8,7 +8,7 @@ export default function Home() {
       <Head>
         <title>{siteTitle}</title>
       </Head>
-      <section>
+      <section className='prose'>
         <h1>Hi 👋 I'm Jeremy</h1>
         <p>This is my personal website where I share my thoughts as a data analyst and document my learning journey.</p>
       </section>
