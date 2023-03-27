@@ -12,9 +12,10 @@ I want to write articles and analyses using Markdown files. I might add some cus
 I want all my posts under a `/posts` subfolder in reverse chronological order.
 
 #### Portfolio subfolder
-I want all my data analysis projects under a `portfolio` subfolder in reverse chronological order.
+I want all my data analysis projects under a `/portfolio` subfolder in reverse chronological order.
 
 ## How I built this website
 ### Dependencies and libraries
 - [Next.js](https://nextjs.org/)
 - [TailwindCSS](https://tailwindcss.com/)
+- [date-fns](https://date-fns.org/)
