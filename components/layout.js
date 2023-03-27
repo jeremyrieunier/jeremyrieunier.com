@@ -17,7 +17,7 @@ export default function Layout({children, home}) {
       <main className="px-4">
         {children}
         {!home && (
-          <div>
+          <div className="mt-12">
             <Link href="/">← Back to 🏠 home</Link>
           </div>
         )}
