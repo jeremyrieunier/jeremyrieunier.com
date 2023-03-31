@@ -9,10 +9,10 @@ export default function Home() {
       <Head>
         <title>{siteTitle}</title>
       </Head>
-      <section className='prose'>
-        <h1>Hi 👋 I'm Jeremy</h1>
+      <section>
+        <h1 className="tracking-tight">Hi 👋 I'm Jeremy</h1>
         <p>This is my personal website where I share my thoughts as a data analyst and document my learning journey.</p>
-        <h2>Elsewhere</h2>
+        <h2 className="tracking-tight">Elsewhere</h2>
         <ul>
           <li>
             <a href='https://dealwithgrowth.com/shopify-cart-abandonment-email' target='_blank'>How to Recover 15% of Your Lost Shopify Sales with Cart Abandonment Emails - Dealwithgrowth</a>

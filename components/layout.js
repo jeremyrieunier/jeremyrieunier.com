@@ -6,15 +6,15 @@ export const siteTitle = `Jeremy Rieunier`
 
 export default function Layout({children, home}) {
   return(
-    <div className="max-w-xl mx-auto mb-16">
+    <div className="max-w-2xl mx-auto mb-16">
       <header className="flex py-7">
-        <nav className="flex items-center">
+        <nav className="flex items-center text-blue">
           {headerNavLinks.map((link) => (
-            <Link key={link.title} href={link.href} className="p-4">{link.title}</Link>
+            <Link key={link.title} href={link.href} className="px-5 py-4">{link.title}</Link>
           ))}
         </nav>
       </header>
-      <main className="px-4">
+      <main className="px-5 prose prose-lg">
         {children}
         {!home && (
           <div className="mt-12">

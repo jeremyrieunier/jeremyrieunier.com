@@ -10,8 +10,8 @@ export default function AboutPage() {
       <Head>
         <title>About {siteTitle}</title>
       </Head>
-      <section className='prose'>
-        <h1>About Jeremy Rieunier</h1>
+      <section>
+        <h1 className="tracking-tight">About Jeremy Rieunier</h1>
         <Image
               priority
               src="/img/jeremyrieunier.jpg"
