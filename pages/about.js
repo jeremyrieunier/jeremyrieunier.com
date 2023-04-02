@@ -11,7 +11,7 @@ export default function AboutPage() {
         <title>About {siteTitle}</title>
       </Head>
       <section>
-        <h1 className="tracking-tight">About Jeremy Rieunier</h1>
+        <h1>About Jeremy Rieunier</h1>
         <Image
               priority
               src="/img/jeremyrieunier.jpg"

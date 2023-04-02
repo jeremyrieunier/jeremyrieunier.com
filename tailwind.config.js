@@ -25,12 +25,10 @@ module.exports = {
               color: theme('colors.blue'),
               fontWeight: 'unset'
             },
-            h1: {
-              color: theme('colors.yellow')
+            'h1, h2, h3': {
+              color: theme('colors.yellow'),
+              letterSpacing: theme('letterSpacing.tight')
             },
-            h2: {
-              color: theme('colors.yellow')
-            }
           },
         },
       }),
