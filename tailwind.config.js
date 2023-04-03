@@ -18,6 +18,7 @@ module.exports = {
       typography: (theme) => ({
         DEFAULT: {
           css: {
+            maxWidth: 'inherit',
             p: {
               color: theme('colors.white')
             },

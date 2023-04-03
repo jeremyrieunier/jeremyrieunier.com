@@ -2,8 +2,19 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout, {siteTitle} from '../components/layout';
 import Date from '../components/date';
+import { getSortedPortfolioData } from '../lib/portfolio';
 
-export default function Home() {
+export async function getStaticProps() {
+  const allPortfolioData = getSortedPortfolioData();
+  return {
+    props: {
+      allPortfolioData
+    }
+  };
+}
+
+
+export default function Home({allPortfolioData}) {
   return (
     <Layout home>
       <Head>
@@ -12,6 +23,18 @@ export default function Home() {
       <section>
         <h1>Hi 👋 I'm Jeremy</h1>
         <p>This is my personal website where I share my thoughts as a data analyst and document my learning journey.</p>
+        <h2>Portfolio</h2>
+        <ul>
+          {allPortfolioData.map(({ id, date, title}) => (
+            <li key={id}>
+              <Link href={`/portfolio/${id}`}>{title}</Link>
+              <br />
+              <small>
+                <Date dateString={date} />
+              </small>
+            </li>
+          ))}
+        </ul>
         <h2>Elsewhere</h2>
         <ul>
           <li>

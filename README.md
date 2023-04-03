@@ -19,3 +19,5 @@ I want all my data analysis projects under a `/portfolio` subfolder in reverse c
 - [Next.js](https://nextjs.org/)
 - [TailwindCSS](https://tailwindcss.com/)
 - [date-fns](https://date-fns.org/)
+- [gray-matter](https://github.com/jonschlinkert/gray-matter)
+- [mdx-bundler](https://github.com/kentcdodds/mdx-bundler)
