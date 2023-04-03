@@ -11,7 +11,12 @@ export default function Layout({children, home}) {
       <header className="flex py-7">
         <nav className="flex items-center text-blue">
           {headerNavLinks.map((link) => (
-            <Link key={link.title} href={link.href} className="px-5 py-4">{link.title}</Link>
+            <Link
+              key={link.title}
+              href={link.href}
+              className="px-5 py-4">
+                {link.title}
+            </Link>
           ))}
         </nav>
       </header>

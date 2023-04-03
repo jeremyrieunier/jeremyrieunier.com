@@ -21,9 +21,9 @@ export default function Portfolio({ allPortfolioData }) {
       </Head>
       <section>
         <h1>Data Analyst Portfolio</h1>
-        <ul>
+        <ul className="list-none px-0">
           {allPortfolioData.map(({ id, date, title }) => (
-            <li key={id}>
+            <li className="px-0" key={id}>
               <Link href={`/portfolio/${id}`}>{title}</Link>
               <br />
               <small>

@@ -18,7 +18,7 @@ export async function getStaticPaths() {
   const paths = getAllPortfolioIds();
   return {
     paths,
-    fallback: true,
+    fallback: false,
   };
 }
 
@@ -28,8 +28,12 @@ export default function Portfolio({code, frontmatter}) {
     <Layout>
       <Head>
         <title>{frontmatter.title}</title>
+        <meta
+          name="description"
+          content={frontmatter.description}
+        />
       </Head>
-      <article>
+      <article itemScope itemType="http://schema.org/Article">
         <h1>{frontmatter.title}</h1>
         <div>
           <Date dateString={frontmatter.date} />

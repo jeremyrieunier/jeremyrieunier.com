@@ -18,8 +18,9 @@ module.exports = {
       typography: (theme) => ({
         DEFAULT: {
           css: {
+            color: theme('colors.white'),
             maxWidth: 'inherit',
-            p: {
+            'p, strong': {
               color: theme('colors.white')
             },
             a: {
@@ -30,6 +31,9 @@ module.exports = {
               color: theme('colors.yellow'),
               letterSpacing: theme('letterSpacing.tight')
             },
+            code: {
+              color: theme('colors.yellow')
+            }
           },
         },
       }),
