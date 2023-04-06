@@ -20,7 +20,7 @@ module.exports = {
           css: {
             color: theme('colors.white'),
             maxWidth: 'inherit',
-            'p, strong': {
+            'p, strong, th': {
               color: theme('colors.white')
             },
             a: {
