@@ -1,0 +1,20 @@
+---
+title: 'How to GROUP BY and ORDER BY Month-Year using BigQuery'
+date: '2023-04-06'
+description: ''
+---
+This is especially true when you're dealing with non data savvy stakeholders. Is to `GROUP BY` month. 
+
+But that's not especially visually appealing. Instead, you should be able to group by 
+
+```sql
+SELECT 
+  FORMAT_DATE('%b %Y', DATE (date_column)) AS month,
+  column 2,
+  column 3
+FROM table
+GROUP BY month
+ORDER BY PARSE_DATE('%b %Y', month)
+```
+
+The `FORMAT_DATE` functions format the 
