@@ -53,7 +53,7 @@ export default function Home({ allPostsData, allPortfolioData}) {
         <h2>Elsewhere</h2>
         <ul className="list-none px-0">
           <li className="px-0">
-            <a href='https://dealwithgrowth.com/shopify-cart-abandonment-email' target='_blank'>How to Recover 15% of Your Lost Shopify Sales with Cart Abandonment Emails - Dealwithgrowth</a>
+            <a href="https://dealwithgrowth.com/shopify-cart-abandonment-email" target="_blank">How to Recover 15% of Your Lost Shopify Sales with Cart Abandonment Emails - Dealwithgrowth</a>
             <br />
             <small>
               <Date dateString="2019-05-22" />
