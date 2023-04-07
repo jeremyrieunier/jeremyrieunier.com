@@ -19,19 +19,7 @@ Yet, BigQuery does not have any `MONTH()` and `YEAR()` functions. Instead, you h
  - `FORMAT_DATE()` in the `SELECT` statement to format the date as a string using the month year format.
  - `PARSE_DATE()` in the `ORDER BY` clause to convert the string back into a date format and then sort the result in chronological order.
 
-Here's how the query should like if you want to aggregate by month using the Mnth Year format (ie: `Apr 2023`):
-
-```sql
-SELECT 
-  FORMAT_DATE('%b %Y', DATE (date_column)) AS month,
-  column_2,
-  column_3
-FROM table
-GROUP BY month
-ORDER BY PARSE_DATE('%b %Y', month)
-```
-
-And if you want to aggregate by month using the Month Year format (ie: `April 2023`):
+Here's how the query should look like if you want to aggregate by month using the month year format (ie: `April 2023`):
 
 ```sql
 SELECT 
@@ -41,6 +29,18 @@ SELECT
 FROM table
 GROUP BY month
 ORDER BY PARSE_DATE('%B %Y', month)
+```
+
+And if you want to aggregate by month using the month abbreviation year format (ie: `Apr 2023`):
+
+```sql
+SELECT 
+  FORMAT_DATE('%b %Y', DATE (date_column)) AS month,
+  column_2,
+  column_3
+FROM table
+GROUP BY month
+ORDER BY PARSE_DATE('%b %Y', month)
 ```
 
 Using this format allows stakeholders to quickly understand the story your data tell. Remember that if you want to drive business impact, your work should be as inclusive and accessible as possible. And presenting your results in a clear and meaningful way is a crucial part of that.
