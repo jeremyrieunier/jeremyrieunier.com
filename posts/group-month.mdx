@@ -1,0 +1,46 @@
+---
+title: 'How to correctly group data by month with BigQuery'
+date: '2023-04-07'
+description: 'Learn how to correctly group and sort data by month with BigQuery using the FORMAT_DATE and PARSE_date functions'
+---
+
+When working with data, it's common to aggregate by month. Whether you're analyzing past trends or making forecasts, grouping by months allows for easier comparison between time periods, as well as a better understanding of future patterns.
+
+There are different format options when it comes to grouping data by month with SQL:
+
+- Group by month number: `04` for April
+- Group by month number year: `04 2023` for April 2023
+- Group by month year: `Apr 2023` or `April 2023`
+
+Grouping by month year is the most intuitive way to present your data. And that's especially true when working with non-technical stakeholders.
+
+Yet, BigQuery does not have any `MONTH()` and `YEAR()` functions. Instead, you have to use the following functions:
+
+ - `FORMAT_DATE()` in the `SELECT` statement to format the date as a string using the month year format.
+ - `PARSE_DATE()` in the `ORDER BY` clause to convert the string back into a date format and then sort the result in chronological order.
+
+Here's how the query should like if you want to aggregate by month using the Mnth Year format (ie: `Apr 2023`):
+
+```sql
+SELECT 
+  FORMAT_DATE('%b %Y', DATE (date_column)) AS month,
+  column_2,
+  column_3
+FROM table
+GROUP BY month
+ORDER BY PARSE_DATE('%b %Y', month)
+```
+
+And if you want to aggregate by month using the Month Year format (ie: `April 2023`):
+
+```sql
+SELECT 
+  FORMAT_DATE('%B %Y', DATE (date_column)) AS month,
+  column_2,
+  column_3
+FROM table
+GROUP BY month
+ORDER BY PARSE_DATE('%B %Y', month)
+```
+
+Using this format allows stakeholders to quickly understand the story your data tell. Remember that if you want to drive business impact, your work should be as inclusive and accessible as possible. And presenting your results in a clear and meaningful way is a crucial part of that.
