@@ -17,10 +17,10 @@ export default function Posts({ allPostsData }) {
   return (
     <Layout posts>
       <Head>
-        <title>Posts</title>
+        <title>Posts written by {siteTitle}</title>
       </Head>
       <section>
-        <h1>Posts written by {siteTitle}</h1>
+        <h1>Posts</h1>
         <ul className="list-none px-0">
           {allPostsData.map(({ id, date, title }) => (
             <li className="px-0" key={id}>
