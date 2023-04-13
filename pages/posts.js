@@ -17,7 +17,7 @@ export default function Posts({ allPostsData }) {
   return (
     <Layout posts>
       <Head>
-        <title>Posts written by {siteTitle}</title>
+        <title>Posts</title>
       </Head>
       <section>
         <h1>Posts written by {siteTitle}</h1>
