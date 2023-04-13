@@ -1,35 +1,36 @@
 ---
-title: 'Chicago Bikeshare Analysis Part 1 - Cleaning'
+title: 'Chicago bike-share analysis Part 1: Cleaning'
 date: '2023-04-03'
-description: ''
+description: 'How I cleaned a +5 million records dataset using SQL and Google App Scripts '
 ---
 
 _TL;DR: I cleaned a +5 million records dataset using SQL and Google App Scripts._
 
-I love riding bikes. When I'm exploring a new city, I often try their public bike system. I think it's one of the most convenient way to discover a new city and find its hidden gems. 
+I love riding bikes. When I'm exploring a new city, I often try its public bike system. I think it's the most convenient way to discover a new city and find its hidden gems. 
 
-I've never been to Chicago, but I've found out that Divvy, Chicago's bike-sharing system, realeases historical trip data on a monthly basis [under this license](https://ride.divvybikes.com/data-license-agreement). The data provided are quite complete which make it interesting to explore.
+I've never been to Chicago, but I've found out that Divvy, Chicago's bike-sharing system, releases historical monthly trip data [under this license](https://ride.divvybikes.com/data-license-agreement). The data provided are quite complete which makes it interesting to explore.
 
 But before moving further, let's get some context.
 
 First thing first: the bikes. Riders can choose between 2 kinds of bikes:
 
-- Classic bikes, which must be docked at a station to end the ride.
-- Electric bikes, which can be locked to a public bike rack within the service area or docked at a station.
+- Classic bikes that must be docked at a station to end a ride.
+- Electric bikes that can be locked to a public bike rack within the service area _or_ docked at a station.
 
 Divvy offers 3 plans to use its service:
-- Single ride passes for non-members. It costs $1 to unlock a bike, then $0.17 a minute.
-- Day passes for non-members. It costs $16.50 a day and allow for unlimited 3-hour rides for a 24-hour period.
-- Annual memberships, which gives users unlimited 45-minutes rides.
 
-So what's the goal with this data analysis? Simple: I want uncover how annual riders and non-members use Divvy bikes differently.
+- Single ride passes for non-members. It costs $1 to unlock a bike, then $0.17 a minute.
+- Day passes for non-members. It costs $16.50 a day and allows for unlimited 3-hour rides for 24 hours.
+- Annual memberships, which give users unlimited 45 minutes rides.
+
+So what's the goal of this data analysis? Simple: We want to uncover how annual riders and non-members use Divvy bikes differently.
 
 Let's dive in.
 
-## Data preparation
-Lyft, which operates Divvy, releases [trip history data](https://divvy-tripdata.s3.amazonaws.com/index.html) on a monthly basis. I've choosen to focus my analysis on the year 2022, which means I'll have 12 files to work with—no shit Sherlock.
+## Data Preparation
+Lyft, which operates Divvy, releases [trip history data](https://divvy-tripdata.s3.amazonaws.com/index.html) every month. We will focus this analysis on the year 2022, which means we'll have 12 files to work with.
 
-There are 13 fields in each CSV file and each record represent 1 ride. Metadata are not provided but the majority of variables are self explanatory:
+There are 13 fields in each CSV file and each record represents 1 ride. Metadata are not provided but the majority of variables are self-explanatory:
 
 | Field name | Data type| Description |
 | --------------- | -------- | ------------|
@@ -49,28 +50,34 @@ There are 13 fields in each CSV file and each record represent 1 ride. Metadata 
 
 2 fields need some clarification:
 - `rideable_type` has 3 possible values: `classic_bike`, `docked_bike` and `electric_bike`.
-- `member_casual` has 2 possibles values: `casual` who have bought either a single ride or a day pass, and `member` who have subscribed for an annual membership.
+- `member_casual` has 2 possibles values: `casual` users who have bought either a single ride or a day pass and `member` users who have subscribed for an annual membership.
 
-### Data biais
-Each trip has been anonymized, so there's no personally identifiable information (PII) or credit card informaton. This make it impossible to connect past purchases to users to determine, for example, how many trips a casual rider takes before upgrading to an annual membership.
+### Data bias
+Each trip has been anonymized, so there's no personally identifiable information (PII) or credit card information. This makes it impossible to connect past purchases to users to determine, for example, how many trips a casual rider takes before upgrading to an annual membership.
 
 Another limitation is that Divvy does not provide unique IDs for bikes, which makes it impossible to analyze bike-specific data like failure rates.
 
-According to Divvy, data has been processed to remove trips from staff, as well as any trip that are below 60 seconds (which could be attributed to false starts or rider re-docking a bike to ensure it was locked). Spoiler alert: nop.
+According to Divvy, data has been processed to remove trips from staff, as well as any trips that are below 60 seconds—which could be attributed to false starts or rider re-docking a bike to ensure it was locked.
+
+> Spoiler alert: nop.
 
 Now that we have everything, let's start processing and cleaning the data.
 
 ## Data cleaning
-I first had a quick once-over on the 12 CSV files to make sure everything was in order. I had to remove the headers from the February to December datasets and noticed that TIMESTAMP records were stored as strings in the September to December files.
+> I first had a quick once-over of the 12 CSV files to make sure everything was in order. I removed the headers from the February to December datasets and noticed that TIMESTAMP records were stored as strings in the September to December datasets.
+>
+> After removing the quotation marks from the TIMESTAMP records with the search and replace functionality, I merged all 12 files together using the command prompt.
+>
+> The resulting CSV file came in at a hefty 1GB and has over 5.6 millions records. That's a ton of rides sift thought! I then uploaded it into Google Cloud Storage and created a table named `2022_tripdata` on BigQuery based on the CSV file.
 
-After removing the quotation marks from the TIMESTAMP records with the search and replace functionality, I merged all 12 files together using the command prompt.
+### Cleaning strategy
+First thing first, we will identify what should be cleaned based on our business goal: how annual riders and non-members use Divvy bikes differently.
 
-The resulting CSV file came in at a hefty 1GB and has over 5.6 millions records. That's a ton of rides sift thought! I then uploaded it into Google Cloud Storage and created a table on BigQuery based on the CSV file.
+In the second part, we will actually clean the dataset with all the points we will have then defined in the previous part.
 
-Time to start cleaning it.
 
-### Check for duplicates and `NULL` values
-First thing first, let's check if there's no duplicate ride IDs and if the `rideable_type`, `started_at`, `ended_at` and `member_casual` fields contain `NULL` values.
+### Duplicates and `NULL` values
+First thing first, let's check if there are no duplicate `ride_id` and if the `rideable_type`, `started_at`, `ended_at` and `member_casual` fields contain `NULL` values.
 
 ```sql
 SELECT 
@@ -80,7 +87,7 @@ SELECT
   COUNTIF(started_at IS NOT NULL) AS started_at_records,
   COUNTIF(ended_at IS NOT NULL) AS ended_at_records,
   COUNTIF(member_casual IS NOT NULL) AS member_records
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+FROM `divvy_dataset.2022_tripdata`
 ```
 
 This statement returns the following results:
@@ -95,8 +102,52 @@ This statement returns the following results:
 
 Every record is a unique ride and all of the important fields have non-null values. Good, we're off to a good start!
 
-### Check bike type distribution
-According to [Divvy's website](https://divvybikes.com/how-it-works/meet-the-bikes), there are only 2 types of bikes: classic and electric. However the `rideable_type` field has 3 possible values: `classic_bike`, `docked_bike` and `electric_bike`.
+### Station names and station IDs
+I noticed that a lot of fields have either the `start_station_name` or `end_station_name` missing, and sometimes both (!). 
+
+This could lead to some issues down the road when we'll analyze trip data by station. So let's run the following query to check how many records have missing station data:
+
+```sql
+SELECT
+  COUNTIF(start_station_name IS NULL) AS missing_start_station_name,
+  COUNTIF(start_station_id IS NULL) AS missing_start_station_id,
+  COUNTIF(end_station_name IS NULL) AS missing_end_station_name,
+  COUNTIF(end_station_id IS NULL) AS missing_end_station_id
+FROM `divvy_dataset.2022_tripdata`;
+```
+It returned the following table:
+
+| missing_start_station_name | missing_start_station_id | missing_end_station_name | missing_end_station_id |
+| ---- | ----- | ---- | ---- |
+| 833064 | 833064 | 892742 | 892742 |
+
+That's a lot of `NULL` data! It also shows that when station data is missing, the station name and station ID fields are `NULL`. Moving forward we will use the station name fields instead of the station id fields.
+
+To further investigate this, let's then group the results by bike type:
+
+```sql
+SELECT
+  rideable_type,
+  COUNTIF(start_station_name IS NULL) AS missing_start_data,
+  COUNTIF(end_station_name IS NULL) AS missing_end_data
+FROM `divvy_dataset.2022_tripdata`
+GROUP BY rideable_type;
+```
+
+We can see that nearly all trips where station data are missing are coming from e-bikes :
+
+| rideable_type | missing_start_data | missing_end_data |
+| -------------- | -------------------- | --------------------- |
+| electric_bike | 833064 | 886338 |
+| classic_bike | 0 | 3788 |
+| docked_bike | 0 | 2616|
+
+As a reminder, when riding an e-bike, users can lock the bike to a public rack—without having to dock it at a station. It also means then that users can unlock an e-bike from a public rack and not necessarily from a Divvy station. So these records don't have to be cleaned.
+
+However, some trips where the bike used was a `classic_bike` or a `docked_bike` have missing end station data. These might be due to lost or stolen bikes. We will have to remove these records from the dataset. 
+
+### Bike type distribution
+According to [Divvy's website](https://divvybikes.com/how-it-works/meet-the-bikes), there are only 2 types of bikes: classic and electric. However, the `rideable_type` field has 3 possible values: `classic_bike`, `docked_bike` and `electric_bike`.
 
 Let's check the distribution by user type with the following query:
 
@@ -106,7 +157,7 @@ WITH
     SELECT
       rideable_type,
       COUNT(ride_id) AS number_of_rides,
-    FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+    FROM `divvy_dataset.2022_tripdata`
     GROUP BY rideable_type
   )
 SELECT
@@ -125,32 +176,32 @@ Turns out that only 3% of the records have `docked_bike` as the `rideable_type`:
 | classic_bike | 2601214 | 0.459 |
 | docked_bike | 177474 | 0.0313 | 0|
 
-I reached out to Lyft's data service and they told me changes where made to the Divvy platform in April 2020. Prior to that date a classic bike was described as `docked_bike`. Since April 2020, the same bikes are now tracked as `classic_bike`.
+I reached out to Lyft's data service and they told me changes were made to the Divvy platform in April 2020. Before that date, a classic bike was described as `docked_bike`. Since April 2020, the same bikes are now tracked as `classic_bike`.
 
-Good to know, but I guess the implementation is not perfect yet as there are still some `docked_bike` in the 2022 dataset. We will have to replace all instance of `docked_bike` value with `classic_bike`.
+That's good to know, but I guess the implementation is not perfect yet as there are still some `docked_bike` in the 2022 dataset. We will have to replace all instances of `docked_bike` value with `classic_bike`.
 
-### Check trip length
+### Trip length
 According to [Divvy website](https://divvybikes.com/system-data), all trips from staff and those below 60 seconds have been removed from their datasets. 
 
 Let's add a new field called `ride_length` to verify this, and populate it with the time difference between the `ended_at` and `started_at` fields using the following query:
 
 ```sql
-ALTER TABLE `data-portfolio-379214.divvy_dataset.2022_tripdata`
+ALTER TABLE `divvy_dataset.2022_tripdata`
 ADD COLUMN ride_length INT64;
 
-UPDATE `data-portfolio-379214.divvy_dataset.2022_tripdata`
+UPDATE `divvy_dataset.2022_tripdata`
 SET ride_length = TIMESTAMP_DIFF(ended_at, started_at, SECOND)
 WHERE TRUE;
 ```
 
-Next, let's ran the following query to get a quick glance at the distribution:
+Next, let's run the following query to get a quick glance at the distribution:
 
 ```sql
 SELECT
   COUNT(ride_id) AS total_rides,
   COUNTIF(ride_length < 60) AS rides_below_60secs,
   COUNTIF(ride_length > 10800 ) AS rides_above_3hrs
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`;
+FROM `divvy_dataset.2022_tripdata`;
 ```
 The results clearly show that trips below 60 seconds have not been properly removed :
 
@@ -158,9 +209,9 @@ The results clearly show that trips below 60 seconds have not been properly remo
 | ----------- | ------------------ | ---------------- |
 | 5667717 | 121089 | 19592 |
 
-There are also quite some trips above 3 hours. We might have do some cleaning there since the bikes were probably lost or stolen.
+There are also quite some trips above 3 hours. We might have to do some cleaning there since the bikes were probably lost or stolen.
 
-So let's dig furhter and see how the distribution of ride durations for members looks with the following query:
+So let's dig further and see how the distribution of ride durations looks, starting with members:
 
 ```sql
 WITH
@@ -176,7 +227,7 @@ WITH
       END AS ride_length,
       COUNT(ride_id) AS number_of_rides,
       CAST(ROUND(AVG(TIMESTAMP_DIFF(ended_at, started_at, SECOND))) AS INT64) AS avg_ride_length -- CAST to INTEGER to construct an INTERVAL object
-    FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+    FROM `divvy_dataset.2022_tripdata`
     WHERE member_casual = 'member'
     GROUP BY ride_length       
   )
@@ -189,7 +240,7 @@ FROM trip_length
 ORDER BY avg_ride_length;
 ```
 
-98% of bike rides from members were below 1 hour, with an average trip duration of 11 minutes and 49 seconds:
+98% of bike trips from members were below 1 hour, with an average trip duration of 11 minutes and 49 seconds:
 
 | ride_length	| number_of_rides | share_ride_length |	avg_ride_length_interval |
 | ----- | ----- | ----- | ---- |
@@ -200,11 +251,11 @@ ORDER BY avg_ride_length;
 | 3 hrs to 4hrs |	1178 | 0.0004 |	0-0 0 3:26:37
 | More than 4 hrs |	2833 | 0.0008 |	0-0 0 12:50:22 |
 
-As a reminder, members can use a bike for up to 45 minutes. They can keep the bike out for longer, but they'll have to pay an extra $0.17 per minutes.
+As a reminder, members can use a bike for up to 45 minutes. They can keep the bike out for longer, but they'll have to pay an extra $0.17 per minute.
 
 Based on the extra pricing charge and the average ride length of 1 hour and 17 minutes of the `1 hour to 2 hours` cohort, we will give members an additional 30-minute window and remove all records from members where the trip duration exceeded 1 hour and 15 minutes.
 
-Regarding casual riders, it seems that they ride for a longer period of time than member. That's something we could expect since members probably use Divvy to commute while casual riders may use it for leisure or sightseeing.
+Regarding casual riders, it seems that they ride for a longer period than members. That's something we could expect since members probably use Divvy to commute while casual riders may use it for leisure or sightseeing:
 
 | ride_length	| number_of_rides	| share_ride_length |	avg_ride_length_interval |
 | ----- | ----- | ----- | ----- |
@@ -215,73 +266,31 @@ Regarding casual riders, it seems that they ride for a longer period of time tha
 | 3 hrs to 4hrs	| 4995 | 0.0022 |	0-0 0 3:22:54 |
 | More than 4 hrs	| 10586 | 0.0046 | 0-0 0 31:56:16 |
 
-We will dig deeper around this theme in the analysis part. As a reminder, casual riders with a day pass can use a classic bike for up to 3 hours. Like for members, we'll give them an extra 30 minutes widows and remove every records from casual riders where the trip duration was above 3 hours and 30 minutes.
+We will dig deeper into this theme in the analysis part. As a reminder, casual riders with a day pass can use a classic bike for up to 3 hours. Like members, we'll give them an extra 30 minutes widows and remove every record from casual riders where the trip duration was above 3 hours and 30 minutes.
 
+### Trips beginning and ending in the same station
+It is common to begin and end a trip at the same station when using a bike-sharing service. There are plenty of reasons to do so. It could be because of a false start, a broken bike, or grocery shopping. Or even just for a quick errand. 
 
-### Check station names and station IDs
-I noticed that a lot of fields have either the `start_station_name` or `end_station_name` missing, and sometime both (!).
-
-This could lead to some issues down the road when we'll analyze trip data by station. So let's ran the following query to check how many records have missing station data:
-
-```sql
-SELECT
-  COUNTIF(start_station_name IS NULL) AS missing_start_station_name,
-  COUNTIF(start_station_id IS NULL) AS missing_start_station_id,
-  COUNTIF(end_station_name IS NULL) AS missing_end_station_name,
-  COUNTIF(end_station_id IS NULL) AS missing_end_station_id
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`;
-```
-It returned the following table:
-
-| missing_start_station_name | missing_start_station_id | missing_end_station_name | missing_end_station_id |
-| ---- | ----- | ---- | ---- |
-| 833064 | 833064 | 892742 | 892742 |
-
-That's a lot of `NULL` data! It also shows that when station data is missing, the station name and station ID fields are `NULL`.
-
-To further investigate this, let's then group the results by bike type:
-
-```sql
-SELECT
-  rideable_type,
-  COUNTIF(start_station_name IS NULL) AS missing_start_data,
-  COUNTIF(end_station_name IS NULL) AS missing_end_data
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
-GROUP BY rideable_type;
-```
-
-We can see that nearly all trips where station data are missing are comming from e-bikes :
-
-| rideable_type | missing_start_data | missing_end_data |
-| -------------- | -------------------- | --------------------- |
-| electric_bike | 833064 | 886338 |
-| classic_bike | 0 | 3788 |
-| docked_bike | 0 | 2616|
-
-As a reminder, when riding an e-bike, users can lock the bike to a public rack - without having to dock it at a station. It also means then that users can unlock an e-bike from a public rack and not necessraly from a Divvy station. So these records don't have to be cleaned.
-
-However, some trips where the bike used was a `classic_bike` or a `docked_bike` have missing end station data. These might be due to lost or stolen bikes. We will have to remove these records from the dataset. 
-
-### Check trips beginning and ending in the same station
-Sometime, users can begin and end a trip in the same station. It could be because they'
+Let's get an idea of how many trips have the same start and end station with the following query:
 
 ```sql
 SELECT 
     COUNT(ride_id) AS total_rides,
     (SELECT
         COUNT(ride_id)
-        FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+        FROM `divvy_dataset.2022_tripdata`
         WHERE start_station_name = end_station_name
     ) AS same_station_rides
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+FROM `divvy_dataset.2022_tripdata`
 ```
-This query returned the following result:
+
+Turns out that more than 293,000 records have the same start and end station. That's 5.18% of the total rides:
 
 | total_rides | same_station_rides |
 | ----------- | ------------------ |
 | 5667717  | 293619 |
 
-More than 293,000 records have the same start and end station. That's more than 5% of the total rides. I then ran the the following query to get more insight on the distribution by rider type:
+Let's get more insight into the distribution of these same-station trips by rider type:
 
 ```sql
 WITH same_stations_trips AS (
@@ -290,7 +299,7 @@ WITH same_stations_trips AS (
     COUNT(ride_id) OVER(PARTITION BY member_casual) AS number_of_rides, -- Use of PARTITION BY since we can't use GROUP BY
     CAST(AVG(ride_length) OVER(PARTITION BY member_casual) AS INT64) AS avg_ride_length,
     CAST(PERCENTILE_CONT(ride_length, 0.5) OVER(PARTITION BY member_casual) AS INT64) AS median_ride_length -- CAST to INTEGER to construct an INTERVAL object
-  FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+  FROM `divvy_dataset.2022_tripdata`
   WHERE start_station_name = end_station_name
 )
 
@@ -304,28 +313,103 @@ FROM same_stations_trips
 ORDER BY number_of_rides DESC;
 ```
 
-This query returned the following result:
+Nearly 60% of these same-station trips were taken by casual riders:
+
 | member_casual |number_of_rides |share | avg_ride_length_interval | median_ride_length_interval |
 | ----- | ----- | ----- | ----- | ----- |
 | casual | 175571 | 0.598 | 0-0 0 0:35:45 | 0-0 0 0:19:47 |
 | member | 118048 | 0.402 | 0-0 0 0:12:58 | 0-0 0 0:2:11 |
 
-some sight seeing around a park or a particular neightbourhood. But regarding member, that's another thing. I'll use the median ride length for interval as a baseline and remove all trips whith the same start and end station that were under 2 minutes length.
+This could indicate that casual riders might use the service for leisurely sightseeing around a particular park or neighborhood.
+
+But the most interesting bit is with members. The median is actually quite low: 2 minutes and 11 seconds. This suggests that they may have unlocked a bike and then returned it because it was defective.
+
+So let's use this result as a baseline to remove all same-station trips in under 2 minutes.
 
 Time to move to coordinates.
 
-### Check coordinates data
-I previously noticed that coordinates data are not accurate. Some have 2 decimals digits while other have 9 decimal digits. 
+> Spoiler alert: it's going to be fun.
 
-This means that some stations might share the same coordinates. It also means that some stations might have more than 1 coordinates. Like a station with a latitute equals to 42.17 in 1 record and then 42.176583 in another record. This could mess up the analysis as well as visualization once we will plot these data on a map.
+### Coordinates data
 
-Take for example the `Streeter Dr & Grand Ave` station which has 22,366 different coordinates. While most of them are clustered around the same area, some are scattered around town, as shown below:
+There are in total 1,709 stations. So there should be, in total, 1,709 different coordinates data, right? Right. Well, let's check that with the following query:
 
-<iframe class="w-full aspect-[4/3]" src="https://lookerstudio.google.com/embed/reporting/175303c2-e487-4538-b62c-fa8f3cff95ff/page/yHfID" frameborder="0" allowfullscreen></iframe>
+```sql
+WITH coordinates_stations AS (
+  SELECT
+    start_station_name AS station_name,
+    CONCAT(start_lat, ' ', start_lng) AS coordinates
+  FROM `divvy_dataset.2022_tripdata`
+  WHERE start_station_name IS NOT NULL AND start_lat IS NOT NULL AND start_lng IS NOT NULL
+  UNION ALL -- UNION ALL to get data from start and end stations under the same field
+  SELECT
+    end_station_name AS station_name,
+    CONCAT(end_lat, ' ', end_lng) AS coordinates
+  FROM `divvy_dataset.2022_tripdata`
+  WHERE end_station_name IS NOT NULL AND end_lat IS NOT NULL AND end_lng IS NOT NULL
+)
+SELECT
+  COUNT(DISTINCT station_name) AS unique_stations,
+  COUNT(DISTINCT coordinates) AS unique_coordinates,
+  ROUND(COUNT(DISTINCT coordinates) / COUNT(DISTINCT station_name)) AS avg_coordinates_per_station
+FROM coordinates_stations;
+```
 
-In short, we can't trust coodinates data in this dataset. Idealy, each station should have 1 coordinate. No more. Time to do some cleaning.
+There are 1,952,581 unique coordinates:
 
-First let's download the [Divvy Bicycle Stations dataset from the city of Chicago Data Portal](https://data.cityofchicago.org/Transportation/Divvy-Bicycle-Stations/bbyy-e7gq) and import it into a Google Sheet. This dataset has the following fields: 
+| unique_stations | unique_coordinates | avg_coordinates_per_station |
+| --------------- | ------------------ | --------------------------- |
+| 1709 | 1952581 | 1143.0 |
+
+Yup, that's right. One million nine hundred fifty thousand five hundred eighty-one. Unique. Coordinates. That's an average of 1,143 coordinates per station. Definitely not good.
+
+Let's find out which station has the most coordinates with the following query:
+
+```sql
+WITH coordinates_stations AS (
+  SELECT
+    start_station_name AS station_name,
+    CONCAT(start_lat, ' ', start_lng) AS coordinates
+  FROM `divvy_dataset.2022_tripdata`
+  WHERE start_station_name IS NOT NULL AND start_lat IS NOT NULL AND start_lng IS NOT NULL
+  UNION ALL -- UNION ALL to get data from start and end stations under the same field
+  SELECT
+    end_station_name AS station_name,
+    CONCAT(end_lat, ' ', end_lng) AS coordinates
+  FROM `divvy_dataset.2022_tripdata`
+  WHERE end_station_name IS NOT NULL AND end_lat IS NOT NULL AND end_lng IS NOT NULL
+)
+SELECT
+  DISTINCT station_name,
+  COUNT(DISTINCT coordinates) AS unique_coordinates
+FROM coordinates_stations
+GROUP BY station_name
+ORDER BY unique_coordinates DESC
+LIMIT 3;
+```
+
+Annnd *drum roll please* the winner is... `Streeter Dr & Grand Ave` station with an astonishing 22,366 different coordinates data!
+
+| station_name | unique_coordinates |
+| ------------ | ------------------ |
+| Streeter Dr & Grand Ave | 22366 |
+| Wells St & Concord Ln | 15746 |
+| Kingsbury St & Kinzie St | 13857 |
+
+Let's plot these 22,366 coordinates points on a map using Looker:
+<iframe class="w-full h-full" src="https://lookerstudio.google.com/embed/reporting/175303c2-e487-4538-b62c-fa8f3cff95ff/page/yHfID" frameborder="0" allowfullscreen></iframe>
+
+While most of them are clustered around the same area, some are scattered around town. This is definitely going to make the visualization of all these coordinates not insightful at all once we'll start analyzing the dataset.
+
+In short, we can't trust these coordinates data. Ideally, each station should have 1 coordinate. No more.
+
+Time to do some cleaning.
+
+### Cleaning the coordinates data
+
+First, let's download the [Divvy Bicycle Stations dataset from the City of Chicago Data Portal](https://data.cityofchicago.org/Transportation/Divvy-Bicycle-Stations/bbyy-e7gq) and import it into a Google Sheet.
+
+This dataset has the following fields: 
 
 | Field | Data type| Description |
 | --------------- | -------- | ------------|
@@ -334,23 +418,27 @@ First let's download the [Divvy Bicycle Stations dataset from the city of Chicag
 | Total Docks | Integer | Number of docks in the station |
 | Docks in service | Integer | Docks in service |
 | Status | String | `In Service` or `Not In Service`|
-| Latitute | Float | Latitude of the station |
+| Latitude | Float | Latitude of the station |
 | Longitude | Float | Longitude of the station |
 | Location | String | Coordinates of the station between parenthesis |
 
-I noticed that the station ID field is not consistent with the trip history dataset. For instance the `Monticello Ave & Chicago Ave` station has the ID set to `301` in the Divvy dataset, while it has the ID set to `1575949489503728316` in the city of Chicago dataset. Moving forward we will use the station name fields to avoid any confusion.
+> Quick note on this dataset: the station ID field is not consistent with the Divvy trip history dataset.
+>
+>For instance, the `Monticello Ave & Chicago Ave` station has the ID set to `301` in the Divvy dataset, while it has the ID set to `1575949489503728316` in the City of Chicago dataset.
+>
+>Moving forward we will use the station name fields to avoid any confusion.
 
-Then let's export the list of all stations using the following query:
+Let's start by exporting the list of all stations using the following query:
 ```sql
 WITH station_data AS (
   SELECT
     DISTINCT(start_station_name) AS station_name,
-  FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+  FROM `divvy_dataset.2022_tripdata`
   WHERE start_station_name IS NOT NULL
   UNION ALL -- UNION ALL to get data from start and end stations under the same field
   SELECT
     DISTINCT(end_station_name) AS station_name,
-  FROM `data-portfolio-379214.divvy_dataset.2022_tripdata`
+  FROM `divvy_dataset.2022_tripdata`
   WHERE end_station_name IS NOT NULL  
 )
 SELECT
@@ -358,7 +446,12 @@ SELECT
 FROM station_data;
 ```
 
-After uploading the dataset on Google Sheet, I encountered errors while looking up the latitute using `=VLOOKUP` formula. Upon inspection, it appeats that the name of some stations have changed between the 2 dataset. For instance, `Fullerton Ave & Narragansett Ave` became `Public Rack - Fullerton Ave & Narragansett Ave`.
+Once the data is loaded into our Google Sheets, we can now start using the `VLOOKUP` formula to look up all the coordinates data from the City of Chicago dataset to the list of stations we previously exported.
+
+In the face of overwhelming odds, we're left with only 1 option: we're going to have to sh*t out of this.
+
+
+After uploading the dataset on Google Sheets, I encountered errors while looking up the latidute using `=VLOOKUP` formula. Upon inspection, it appears that the name of some stations have changed between the 2 dataset. For instance, `Fullerton Ave & Narragansett Ave` became `Public Rack - Fullerton Ave & Narragansett Ave`.
 
 So I had to update the formula using a nested `IFERROR` statement as shown below:
 
@@ -366,7 +459,9 @@ So I had to update the formula using a nested `IFERROR` statement as shown below
 =IFERROR(VLOOKUP(A2,Divvy_Bicycle_Stations!A:G,6,FALSE),(VLOOKUP("Public Rack - "&2,Divvy_Bicycle_Stations!A:G,6,FALSE)))
 ```
 
-I still got some errors, though. Time to fire up custom formulas. I created `=GETLAT` and `=GETLONG` using Google App Script and its [Geocoder Class](https://developers.google.com/apps-script/reference/maps/geocoder#reverseGeocode(Number,Number)) to get the latitude and longitude of an address according to Google Maps.
+We still got some errors, though. Time to fire up custom formulas using Google App Script and its [Geocoder Class](https://developers.google.com/apps-script/reference/maps/geocoder#reverseGeocode(Number,Number)) to get the latitude and longitude of an address according to Google Maps.
+
+Let's start by creating a `GETLAT()` formula to get the latitude:
 
 ```js
 const GETLAT = (address) => { // =GETLAT("Streeter Dr & Grand Ave")
@@ -378,8 +473,10 @@ const GETLAT = (address) => { // =GETLAT("Streeter Dr & Grand Ave")
   Utilities.sleep(500); // pause the loop for 500 milliseconds
   return `${lat}`; // return the latitude
 };
+```
+And then let's create a `GETLONG()` formula to get the longitude:
 
-
+```js
 const GETLONG = (address) => { // =GETLONG("Streeter Dr & Grand Ave")
   const { results: [data = null] = [] } = Maps.newGeocoder().geocode(address); // address to lookup
   if (data === null) {
@@ -392,27 +489,28 @@ const GETLONG = (address) => { // =GETLONG("Streeter Dr & Grand Ave")
 ```
 These 2 formulas use the `Maps.newGeocoder().geocode` method that takes an address string and returns either the latitude or the longitude from the response object.
 
-I then updated the formula to get the Latitude if the first 2 VLOOKUP return an empty field:
+Then we can update the formula to get the latitude and longitude *IF* the first 2 VLOOKUP return an empty field:
 ```less
 =IFERROR(VLOOKUP(A2,Divvy_Bicycle_Stations!A:G,7,FALSE),IFERROR(VLOOKUP("Public Rack - "&A2,Divvy_Bicycle_Stations!A:G,6,FALSE),GOOGLEMAPS_LAT("Chicago Divvy "&A2)))
 ```
 
-And did the same to get the Longitude if the first 2 VLOOKUP return an empty field:
-
 ```less
 =IFERROR(VLOOKUP(A2,Divvy_Bicycle_Stations!A:G,7,FALSE),IFERROR(VLOOKUP("Public Rack - "&A2,Divvy_Bicycle_Stations!A:G,7,FALSE),GOOGLEMAPS_LAT("Chicago Divvy "&A2)))
 ```
-I thought that adding the zip code will allow for some neat visualization by neighbourhood. Again, by using the Geocoder class from the Google Maps API I was able to create a custom `=GETZIP` formula to retrieve the ZIP code based on coordinates data: 
+
+While we're at it, why not add the zip code for each station? This will allow for some neat visualization by neighborhood once we'll start analyzing the dataset.
+
+Again, by using the Geocoder class from the Google Maps API we can create a custom `GETZIP()` formula to retrieve the ZIP code based on coordinates data: 
 
 ```js
 const GETZIP = (latitude, longitude) => { // =GETZIP(42.23144, 0.873234)
   const { results: [data = {}] = [] } = Maps.newGeocoder().reverseGeocode(latitude, longitude);
   Utilities.sleep(500); // pause the loop for 500 milliseconds
-  return data.formatted_address.split(',')[2].trim().split(' ')[1];
+  return data.formatted_address.split(',')[2].trim().split(' ')[1]; // return the complete address and extract its zip code
 };
 ```
 
-The CSV file is now ready to be uploaded into Bigquery with the following fields:
+Tada! The CSV file is now ready to be uploaded into Bigquery with the following fields:
 
 | Field | Data type | Description |
 | ----- | ----------- | ------------ |
@@ -421,7 +519,105 @@ The CSV file is now ready to be uploaded into Bigquery with the following fields
 | long | Float | Longitude of the station |
 | zip_code | String | Zip code of the station |
 
-Before uploading the table, I took notes of the following stations that should be removed: 
+> Before uploading the table, I took notes of the following stations that should be removed: 
+>
+> ```
+> WEST CHI-WATSON
+> Pawel Bialowas - Test- PBSC charging station
+> Divvy Valet - Oakwood Beach
+> DIVVY CASSETTE REPAIR MOBILE STATION
+> Base - 2132 W Hubbard
+> Base - 2132 W Hubbard Warehouse
+> NewHastings
+> WestChi
+> Hastings WH 2
+> ```
+> 
+> As well as the following strings of characters that should be removed:
+> 
+> ```
+> Public Rack -
+> Public  Rack -
+> Pubic Rack -
+> City Rack -
+> *
+>  - Charging
+>  - midblock
+>  - midblock south
+>  (Temp)
+>  ```
+
+ Time to (finally) start to clean the dataset.
+
+## Clean the data
+After copying the dataset
+### Remove all trips where the `trip_length` is below 60 seconds
+
+Let's start by removing all records where the `trip_length` field is below 60 seconds:
+
+```sql
+SELECT *
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE ride_length < 60;
+
+DELETE
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE ride_length < 60;
+```
+This statement removed 121,089 fields.
+
+### Remove all trips under 2 minutes having the same start and end station
+Next, let's select all trips under 2 minutes having the same start and end station:
+```sql
+SELECT *
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE start_station_name = end_station_name
+AND ride_length <  120
+ORDER BY ride_length DESC;
+```
+And then let's use the following query to delete all of these records:
+
+```sql
+DELETE
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE start_station_name = end_station_name
+AND ride_length <  120;
+```
+This statement removed 23,578 fields.
+
+Now, let's remove all trips from casual riders where the `trip_length` field is above 3:30 hours:
+```sql
+SELECT *
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE member_casual = "casual"
+AND ride_length > 12600 -- ride_length above 3:30 hours
+ORDER BY ride_length
+LIMIT 10;
+
+DELETE
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE member_casual = "casual"
+AND ride_length > 12600; -- ride_length above 3:30 hours
+```
+This statement removed 12,234 records.
+
+Now for members, let's remove all records where the `trip_length` field is above 1:15 minutes:
+```sql
+SELECT *
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE member_casual = "member"
+AND ride_length > 4500 -- ride_length above 1:15 hours
+ORDER BY ride_length
+LIMIT 10;
+
+DELETE
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE member_casual = "member"
+AND ride_length > 4500; -- ride_length above 1:15 hours
+```
+The statement removed 14429 rows.
+
+Now, let's remove all records where the field `start_station_name` is equal to the following:
 
 ```
 WEST CHI-WATSON
@@ -434,8 +630,84 @@ NewHastings
 WestChi
 Hastings WH 2
 ```
+```sql
+SELECT * 
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE start_station_name IN (
+  'WEST CHI-WATSON',
+  'Pawel Bialowas - Test- PBSC charging station',
+  'Divvy Valet - Oakwood Beach',
+  'DIVVY CASSETTE REPAIR MOBILE STATION',
+  'Base - 2132 W Hubbard',
+  'Base - 2132 W Hubbard Warehouse',
+  'NewHastings',
+  'WestChi',
+  'Hastings WH 2'
+);
 
-As well as the following strings of characters that should be removed:
+DELETE 
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE start_station_name IN (
+  'WEST CHI-WATSON',
+  'Pawel Bialowas - Test- PBSC charging station',
+  'Divvy Valet - Oakwood Beach',
+  'DIVVY CASSETTE REPAIR MOBILE STATION',
+  'Base - 2132 W Hubbard',
+  'Base - 2132 W Hubbard Warehouse',
+  'NewHastings',
+  'WestChi',
+  'Hastings WH 2'
+);
+```
+This statement removed 1,951 records.
+
+Let's do the same for the `end_station_name` field:
+```sql
+SELECT * 
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE end_station_name IN (
+  'WEST CHI-WATSON',
+  'Pawel Bialowas - Test- PBSC charging station',
+  'Divvy Valet - Oakwood Beach',
+  'DIVVY CASSETTE REPAIR MOBILE STATION',
+  'Base - 2132 W Hubbard',
+  'Base - 2132 W Hubbard Warehouse',
+  'NewHastings',
+  'WestChi',
+  'Hastings WH 2'
+);
+
+DELETE 
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE end_station_name IN (
+  'WEST CHI-WATSON',
+  'Pawel Bialowas - Test- PBSC charging station',
+  'Divvy Valet - Oakwood Beach',
+  'DIVVY CASSETTE REPAIR MOBILE STATION',
+  'Base - 2132 W Hubbard',
+  'Base - 2132 W Hubbard Warehouse',
+  'NewHastings',
+  'WestChi',
+  'Hastings WH 2'
+);
+```
+This statement removed 231 rows.
+
+In total, ****** records have been deleted. Now let's update the data that should be updated.
+
+First, let's replace all `docked_bike` value with `classic_bike` in the `rideable_type` field:
+
+```sql
+UPDATE `divvy_dataset.2022_tripdata_clean`
+SET rideable_type = 'classic_bike'
+WHERE rideable_type = 'docked_bike';
+
+SELECT DISTINCT rideable_type
+FROM `divvy_dataset.2022_tripdata_clean`;
+```
+This statement modified 169,523 records.
+
+Now let's remove the following substrings of characters from the `start_station_name` field:
 
 ```
 Public Rack -
@@ -449,35 +721,40 @@ City Rack -
  (Temp)
  ```
 
- Time to (finally) start to clean the dataset.
+```sql
+SELECT
+  DISTINCT start_station_name,
+  REGEXP_REPLACE(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE REGEXP_CONTAINS(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
 
-## Clean the data
-After copying the dataset
-### Remove all fields where the `trip_length` is below 60 seconds
+UPDATE `divvy_dataset.2022_tripdata_clean`
+SET start_station_name = REGEXP_REPLACE(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
+WHERE REGEXP_CONTAINS(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
+```
+This statement updated 84151 rows. And now let's do the same for the `end_station_name` field:
+```sql
+SELECT
+  DISTINCT end_station_name,
+  REGEXP_REPLACE(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE REGEXP_CONTAINS(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
+
+UPDATE `divvy_dataset.2022_tripdata_clean`
+SET end_station_name = REGEXP_REPLACE(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
+WHERE REGEXP_CONTAINS(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
+```
+This one updated 87,316 rows. Thank you ChatGPT.
+
+In total, ****** records have been updated and we've removed duplicate stations decreasing their total numbers from 1709 down to ****.
+
+Finally, let's JOINS coordinate data starting with the zip code:
 
 ```sql
-SELECT *
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata_clean`
-WHERE ride_length < 60;
+ALTER TABLE `divvy_dataset.2022_tripdata_clean`
+ADD COLUMN end_station_zip STRING;
 
-DELETE
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata_clean`
-WHERE ride_length < 60;
-```
-This statement removed 121,089 fields.
-
-### Remove all trips under 2 minutes having the same start and end station
-```sql
-SELECT *
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata_clean`
-WHERE start_station_name = end_station_name
-AND ride_length <  120
-ORDER BY ride_length DESC;
-
-DELETE
-FROM `data-portfolio-379214.divvy_dataset.2022_tripdata_clean`
-WHERE start_station_name = end_station_name
-AND ride_length <  120;
-```
-This statement removed 23,578 fields.
-
+UPDATE `divvy_dataset.2022_tripdata_clean` AS tripdata
+SET end_station_zip = CAST(stations_data.zip_code AS STRING)
+FROM `divvy_dataset.stations_data` AS stations_data
+WHERE tripdata.end_station_name = stations_data.station_name;
