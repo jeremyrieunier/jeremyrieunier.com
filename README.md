@@ -18,6 +18,9 @@ I want all my data analysis projects under a `/portfolio` subfolder in reverse c
 ### Dependencies and libraries
 - [Next.js](https://nextjs.org/)
 - [TailwindCSS](https://tailwindcss.com/)
+- [Vercel Analytics](https://github.com/vercel/analytics)
 - [date-fns](https://date-fns.org/)
 - [gray-matter](https://github.com/jonschlinkert/gray-matter)
 - [mdx-bundler](https://github.com/kentcdodds/mdx-bundler)
+- [remark-gfm](https://github.com/remarkjs/remark-gfm)
+- [rehype-prism-plus](https://github.com/timlrx/rehype-prism-plus)
