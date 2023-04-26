@@ -1,6 +1,6 @@
 ---
-title: 'Chicago bike-share analysis Part 1: Cleaning'
-date: '2023-04-03'
+title: 'Chicago bike-share Analysis Part 1: Cleaning'
+date: '2023-04-24'
 description: 'How I cleaned a +5 million records dataset using SQL and Google App Scripts '
 ---
 
@@ -68,12 +68,12 @@ Now that we have everything, let's start processing and cleaning the data.
 >
 > After removing the quotation marks from the TIMESTAMP records with the search and replace functionality, I merged all 12 files together using the command prompt.
 >
-> The resulting CSV file came in at a hefty 1GB and has over 5.6 millions records. That's a ton of rides sift thought! I then stored it into Google Cloud Storage and created on BigQuery a table named `2022_tripdata` within a `divvy_dataset` dataset.
+> The resulting CSV file came in at a hefty 1GB and has over 5.6 million records. That's a ton of rides sift thought! I then stored it in Google Cloud Storage and created on BigQuery a table named `2022_tripdata` within a `divvy_dataset` dataset.
 
 ### Cleaning strategy
-We will start by identifying in the `2022_tripdata` table what need to be cleaned to achieve our business goal: how annual riders and non-members use Divvy bikes differently.
+We will start by identifying in the `2022_tripdata` table what needs to be cleaned to achieve our business goal: how annual riders and non-members use Divvy bikes differently.
 
-In the second part, we will create a copy of the `2022_tripdata` table, name it  `2022_tripdata_clean` and use it to perform the cleaning, based on the points defined in the previous step. 
+In the second part, we will create a copy of the `2022_tripdata` table, name it `2022_tripdata_clean` and use it to perform the cleaning, based on the points defined in the previous step. 
 
 ### Duplicates and `NULL` values
 Let's start by checking if there are no duplicate `ride_id` and if the `rideable_type`, `started_at`, `ended_at` and `member_casual` fields contain `NULL` values.
@@ -114,9 +114,14 @@ FROM `divvy_dataset.2022_tripdata`;
 ```
 Yes, indeed! That's a whole lot of `NULL` data:
 
-| missing_start_station_name | missing_start_station_id | missing_end_station_name | missing_end_station_id |
-| ---- | ----- | ---- | ---- |
-| 833064 | 833064 | 892742 | 892742 |
+| missing_start_station_name | missing_start_station_id |
+| ---- | ----- | 
+| 833064 | 833064 |
+
+
+ missing_end_station_name | missing_end_station_id |
+| ---- | ----- |
+| 892742 | 892742 |
 
 It also shows that when station data is missing, the station name and station ID fields are `NULL`. Moving forward we will use the station name fields instead of the station id fields.
 
@@ -143,7 +148,7 @@ As a reminder, when riding an e-bike, users can lock the bike to a public rackâ€
 
 However, some trips where the bike used was a `classic_bike` or a `docked_bike` have missing end station data. These might be due to lost or stolen bikes. We will have to remove these records from the dataset. 
 
-### Bike type distribution
+### Bike-type distribution
 According to [Divvy's website](https://divvybikes.com/how-it-works/meet-the-bikes), there are only 2 types of bikes: classic and electric. However, the `rideable_type` field has 3 possible values: `classic_bike`, `docked_bike` and `electric_bike`.
 
 Let's check the distribution by user type with the following query:
@@ -173,7 +178,7 @@ Turns out that only 3% of the records have `docked_bike` as the `rideable_type`:
 | classic_bike | 2601214 | 0.459 |
 | docked_bike | 177474 | 0.0313 | 0|
 
-I reached out to Lyft's data service and they told me changes were made to the Divvy platform in April 2020. Prior to that, a classic bike was identified as `docked_bike`. However, since April 2020, theses bikes are now tracked as `classic_bike`.
+I reached out to Lyft's data service and they told me changes were made to the Divvy platform in April 2020. Before that, a classic bike was identified as `docked_bike`. However, since April 2020, these bikes are now tracked as `classic_bike`.
 
 Despite the change, there are still instances of `docked_bike` value present in the 2022 dataset. I guess the implementation is not perfect, yet. Anyway, we will have to replace all of these instances with `classic_bike`.
 
@@ -312,10 +317,15 @@ ORDER BY number_of_rides DESC;
 
 Nearly 60% of these same-station trips were taken by casual riders:
 
-| member_casual |number_of_rides |share | avg_ride_length_interval | median_ride_length_interval |
-| ----- | ----- | ----- | ----- | ----- |
-| casual | 175571 | 0.598 | 0-0 0 0:35:45 | 0-0 0 0:19:47 |
-| member | 118048 | 0.402 | 0-0 0 0:12:58 | 0-0 0 0:2:11 |
+| member_casual |number_of_rides |share |
+| ----- | ----- | ----- | 
+| casual | 175571 | 0.598 | 
+| member | 118048 | 0.402 |
+
+| member_casual | avg_ride_length_interval | median_ride_length_interval |
+| ----- | ----- | ----- |
+| casual | 0-0 0 0:35:45 | 0-0 0 0:19:47 |
+| member | 0-0 0 0:12:58 | 0-0 0 0:2:11 |
 
 This could indicate that casual riders might use the service for leisurely sightseeing around a particular park or neighborhood.
 
@@ -394,7 +404,9 @@ Annnd *drum roll please* the winner is... `Streeter Dr & Grand Ave` station with
 | Kingsbury St & Kinzie St | 13857 |
 
 Let's plot these 22,366 coordinates points on a map using Looker:
+<div class="aspect-video">
 <iframe class="w-full h-full" src="https://lookerstudio.google.com/embed/reporting/175303c2-e487-4538-b62c-fa8f3cff95ff/page/yHfID" frameborder="0" allowfullscreen></iframe>
+</div>
 
 While most of them are clustered around the same area, some are scattered around town. This is definitely going to make the visualization of all these coordinates not insightful at all once we'll start analyzing the dataset.
 
@@ -443,25 +455,24 @@ SELECT
 FROM station_data;
 ```
 
+After loading the data into our Google Sheets, we can then now look up the latitude and longitude data from the City of Chicago dataset to the list of stations we just exported. Should be easy right?
 
-Once the data is loaded into our Google Sheets, we can then now look up the latitude and longitude data from the City of Chicago dataset to the list of stations we just exported. Should be easy right?
+Turns out the name of some stations have changed between the 2 datasets. For example, `Fullerton Ave & Narragansett Ave` became `Public Rack - Fullerton Ave & Narragansett Ave` in the City of Chicago dataset.
 
-Turns out the name of some stations have changed between the 2 datasets. For instance, `Fullerton Ave & Narragansett Ave` became `Public Rack - Fullerton Ave & Narragansett Ave` in the City of Chicago dataset.
-
-So let's nest 2 `VLOOKUP` inside an `IFERROR` function to get the value if the station name starts with `Public Rack - `:
+We can nest 2 `VLOOKUP()` inside an `IFERROR()` function to get the value if the station name starts with `Public Rack - `:
 ```less
 =IFERROR(VLOOKUP(A2,Divvy_Bicycle_Stations!A:G,6,FALSE),(VLOOKUP("Public Rack - "&A2,Divvy_Bicycle_Stations!A:G,6,FALSE)))
 ```
 
-A bit better. But there are still some errors, though.  As a great astrobotanist once said:
+A bit better. But there are still some errors, though. As a great astrobotanist once said:
 
 >In the face of overwhelming odds, we're left with only 1 option: we're going to have to code the sh*t out of this.
 
 Or something like that.
 
-Time to fire up custom formulas using Google App Script and its [Geocoder Class](https://developers.google.com/apps-script/reference/maps/geocoder#reverseGeocode(Number,Number)) to get the latitude and longitude of an address according to Google Maps.
+So let's create 2 custom formulas using Google App Script and its [Geocoder Class](https://developers.google.com/apps-script/reference/maps/geocoder#reverseGeocode(Number,Number)) to get the latitude and longitude of an address according to Google Maps.
 
-Let's start by creating a `GETLAT()` formula to get the latitude:
+First, let's create a `GETLAT()` formula to get the latitude:
 
 ```js
 const GETLAT = (address) => { // =GETLAT("Streeter Dr & Grand Ave")
@@ -474,7 +485,7 @@ const GETLAT = (address) => { // =GETLAT("Streeter Dr & Grand Ave")
   return `${lat}`; // return the latitude
 };
 ```
-And then let's create a `GETLONG()` formula to get the longitude:
+And then a `GETLONG()` formula to get the longitude:
 
 ```js
 const GETLONG = (address) => { // =GETLONG("Streeter Dr & Grand Ave")
@@ -489,7 +500,7 @@ const GETLONG = (address) => { // =GETLONG("Streeter Dr & Grand Ave")
 ```
 These 2 formulas use the `Maps.newGeocoder().geocode` method that takes an address string and returns either the latitude or the longitude from the response object.
 
-We can now update the previous formula to get the latitude and longitude *IF* the first 2 VLOOKUPs return an empty field:
+We can now update the previous formula to get the latitude and longitude *IF* the first 2 `VLOOKUP()` return an empty field:
 ```less
 =IFERROR(VLOOKUP(A2,Divvy_Bicycle_Stations!A:G,7,FALSE),IFERROR(VLOOKUP("Public Rack - "&A2,Divvy_Bicycle_Stations!A:G,6,FALSE),GETLAT("Chicago Divvy "&A2)))
 ```
@@ -498,7 +509,36 @@ We can now update the previous formula to get the latitude and longitude *IF* th
 =IFERROR(VLOOKUP(A2,Divvy_Bicycle_Stations!A:G,7,FALSE),IFERROR(VLOOKUP("Public Rack - "&A2,Divvy_Bicycle_Stations!A:G,7,FALSE),GETLONG("Chicago Divvy "&A2)))
 ```
 
-While we're at it, why not add the zip code for each station? This will allow for some neat visualization by neighborhood once we'll start analyzing the dataset.
+Before moving further, let's use conditional formatting with a `COUNTIF()` formula to check for duplicate coordinate data.
+
+Annnnnnd turns out there are some:
+
+| station_name | coordinate |
+| ------------ | ---------- |
+| 63rd & Western Ave - north corner | 41.77936 -87.68377 |
+| 63rd & Western Ave - south corner | 41.77936 -87.68377 |
+| Broadway & Wilson - Truman College Vaccination Site | 41.965221 -87.658139 |
+| Broadway & Wilson Ave | 41.965221 -87.658139 |
+| Elizabeth (May) St & Fulton St | 41.88661649 -87.65803993 |
+| Elizabeth St & Fulton St | 41.88661649 -87.65803993 |
+| Laflin St & 51st St | 41.801354 -87.662076 |
+| Laflin St &51st ST | 41.801354 -87.662076 |
+| Woodlawn Ave & 63rd St - NE | 41.7805135 -87.5962081 | 
+| Woodlawn Ave & 63rd St - SE | 41.7805135 -87.5962081 |
+
+This is due because some station names have changed throughout the year in the Divvy dataset. To consolidate our data and avoid any duplicates, we'll have to update the names of the following stations:
+
+| Current station name | New station name |
+| -------------------- | ---------------- |
+| 63rd & Western Ave - north corner | 63rd & Western Ave N |
+| 63rd & Western Ave - south corner | 63rd & Western Ave S |
+| Broadway & Wilson - Truman College Vaccination Site | Broadway & Wilson Ave |
+| Elizabeth (May) St & Fulton St | Elizabeth St & Fulton St | 
+| Laflin St &51st ST | Laflin St & 51st St |
+| Woodlawn Ave & 63rd St - NE | Woodlawn Ave & 63rd St N |
+| Woodlawn Ave & 63rd St - SE | Woodlawn Ave & 63rd St S |
+
+While we're still working on the Google Sheets, why not add the zip code for each station? This will allow for some neat visualization by neighborhood once we'll analyze the dataset.
 
 Again, by using the Geocoder class from the Google Maps API we can create a custom `GETZIP()` formula to retrieve the ZIP code based on coordinates data: 
 
@@ -550,58 +590,50 @@ Tada! The CSV file is now ready to be uploaded into Bigquery with the following 
  Time to (finally) start to clean the dataset.
 
 ## Clean the data
-After copying the dataset
-### Remove all trips where the `trip_length` is below 60 seconds
+Finally, here we are. Let's start by copying the `2022_tripdata` dataset so we have a safe backup. The dataset we'll work on is now named `2022_tripdata_clean`.
 
-Let's start by removing all records where the `trip_length` field is below 60 seconds:
+First, let's replace all `docked_bike` values with the `rideable_type` field with `classic_bike`:
 
+```sql
+UPDATE `divvy_dataset.2022_tripdata_clean`
+SET rideable_type = 'classic_bike'
+WHERE rideable_type = 'docked_bike';
+
+SELECT DISTINCT rideable_type
+FROM `divvy_dataset.2022_tripdata_clean`;
+```
+This statement modified 177,474 rows in the dataset.
+
+Then, let's remove all records with missing end station data where the `rideable_type` field is equal to `classic_bike`:
+
+```sql
+SELECT *
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE end_station_name IS NULL
+AND rideable_type = 'classic_bike';
+
+DELETE
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE end_station_name IS NULL
+AND rideable_type = 'classic_bike';
+```
+This statement removed 6,404 rows from the dataset.
+
+Now we will remove records where the trip length is below 60 seconds:
 ```sql
 SELECT *
 FROM `divvy_dataset.2022_tripdata_clean`
 WHERE ride_length < 60;
+LIMIT 100;
 
 DELETE
 FROM `divvy_dataset.2022_tripdata_clean`
 WHERE ride_length < 60;
 ```
-This statement removed 121,089 fields.
+This statement removed  121,086 rows from the dataset.
 
-### Remove all trips under 2 minutes having the same start and end station
-Next, let's select all trips under 2 minutes having the same start and end station:
-```sql
-SELECT *
-FROM `divvy_dataset.2022_tripdata_clean`
-WHERE start_station_name = end_station_name
-AND ride_length <  120
-ORDER BY ride_length DESC;
-```
-And then let's use the following query to delete all of these records:
+Then all rides from members where the trip length is above 1 hour and 15 minutes:
 
-```sql
-DELETE
-FROM `divvy_dataset.2022_tripdata_clean`
-WHERE start_station_name = end_station_name
-AND ride_length <  120;
-```
-This statement removed 23,578 fields.
-
-Now, let's remove all trips from casual riders where the `trip_length` field is above 3:30 hours:
-```sql
-SELECT *
-FROM `divvy_dataset.2022_tripdata_clean`
-WHERE member_casual = "casual"
-AND ride_length > 12600 -- ride_length above 3:30 hours
-ORDER BY ride_length
-LIMIT 10;
-
-DELETE
-FROM `divvy_dataset.2022_tripdata_clean`
-WHERE member_casual = "casual"
-AND ride_length > 12600; -- ride_length above 3:30 hours
-```
-This statement removed 12,234 records.
-
-Now for members, let's remove all records where the `trip_length` field is above 1:15 minutes:
 ```sql
 SELECT *
 FROM `divvy_dataset.2022_tripdata_clean`
@@ -615,10 +647,41 @@ FROM `divvy_dataset.2022_tripdata_clean`
 WHERE member_casual = "member"
 AND ride_length > 4500; -- ride_length above 1:15 hours
 ```
-The statement removed 14429 rows.
+This statement removed 13,461 rows from the dataset.
 
-Now, let's remove all records where the field `start_station_name` is equal to the following:
+And then let's delete all rides from casual riders where the trip length is above 3 hours and 30 minutes:
+```sql
+SELECT *
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE member_casual = "casual"
+AND ride_length > 12600 -- ride_length above 3:30 hours
+ORDER BY ride_length
+LIMIT 10;
 
+DELETE
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE member_casual = "casual"
+AND ride_length > 12600; -- ride_length above 3:30 hours
+```
+This statement removed 7,417 rows from the dataset.
+
+Now, let's remove all same-station trips under 2 minutes:
+
+```sql
+SELECT *
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE start_station_name = end_station_name
+AND ride_length <  120
+ORDER BY ride_length DESC;
+
+DELETE
+FROM `divvy_dataset.2022_tripdata_clean`
+WHERE start_station_name = end_station_name
+AND ride_length <  120;
+```
+This statement removed 23,578 rows from the dataset.
+
+Time to remove all trips starting or ending from the following stations:
 ```
 WEST CHI-WATSON
 Pawel Bialowas - Test- PBSC charging station
@@ -630,42 +693,11 @@ NewHastings
 WestChi
 Hastings WH 2
 ```
-```sql
-SELECT * 
-FROM `divvy_dataset.2022_tripdata_clean`
-WHERE start_station_name IN (
-  'WEST CHI-WATSON',
-  'Pawel Bialowas - Test- PBSC charging station',
-  'Divvy Valet - Oakwood Beach',
-  'DIVVY CASSETTE REPAIR MOBILE STATION',
-  'Base - 2132 W Hubbard',
-  'Base - 2132 W Hubbard Warehouse',
-  'NewHastings',
-  'WestChi',
-  'Hastings WH 2'
-);
 
+```sql
 DELETE 
 FROM `divvy_dataset.2022_tripdata_clean`
 WHERE start_station_name IN (
-  'WEST CHI-WATSON',
-  'Pawel Bialowas - Test- PBSC charging station',
-  'Divvy Valet - Oakwood Beach',
-  'DIVVY CASSETTE REPAIR MOBILE STATION',
-  'Base - 2132 W Hubbard',
-  'Base - 2132 W Hubbard Warehouse',
-  'NewHastings',
-  'WestChi',
-  'Hastings WH 2'
-);
-```
-This statement removed 1,951 records.
-
-Let's do the same for the `end_station_name` field:
-```sql
-SELECT * 
-FROM `divvy_dataset.2022_tripdata_clean`
-WHERE end_station_name IN (
   'WEST CHI-WATSON',
   'Pawel Bialowas - Test- PBSC charging station',
   'Divvy Valet - Oakwood Beach',
@@ -691,23 +723,74 @@ WHERE end_station_name IN (
   'Hastings WH 2'
 );
 ```
-This statement removed 231 rows.
+The first statement removed  1,951 from the dataset, while the second removed 231 rows.
 
-In total, ****** records have been deleted. Now let's update the data that should be updated.
+The dataset has now 5,493,589 records, down to 5,667,717 records. That's a total of 174,128 records that were removed.
 
-First, let's replace all `docked_bike` value with `classic_bike` in the `rideable_type` field:
+Now let's rename the following stations: 
+
+| Current station name | New station name |
+| -------------------- | ---------------- |
+| 63rd & Western Ave - north corner | 63rd & Western Ave N |
+| 63rd & Western Ave - south corner | 63rd & Western Ave S |
+| Broadway & Wilson - Truman College Vaccination Site | Broadway & Wilson Ave |
+| Elizabeth (May) St & Fulton St | Elizabeth St & Fulton St | 
+| Laflin St &51st ST | Laflin St & 51st St |
+| Woodlawn Ave & 63rd St - NE | Woodlawn Ave & 63rd St N |
+| Woodlawn Ave & 63rd St - SE | Woodlawn Ave & 63rd St S |
+
+We can achieve that with the following query. Note that there's no way to use Common Table Expressions with BigQuery to return only the data we need, so the query may seem a bit complex and harder to read:
 
 ```sql
-UPDATE `divvy_dataset.2022_tripdata_clean`
-SET rideable_type = 'classic_bike'
-WHERE rideable_type = 'docked_bike';
-
-SELECT DISTINCT rideable_type
-FROM `divvy_dataset.2022_tripdata_clean`;
+UPDATE`divvy_dataset.2022_tripdata_clean`
+SET
+  start_station_name =
+    CASE
+      WHEN start_station_name = '63rd & Western Ave - north corner' THEN '63rd & Western Ave N'
+      WHEN start_station_name = '63rd & Western Ave - south corner' THEN '63rd & Western Ave S'
+      WHEN start_station_name = 'Broadway & Wilson - Truman College Vaccination Site' THEN 'Broadway & Wilson Ave'
+      WHEN start_station_name = 'Elizabeth (May) St & Fulton St' THEN 'Elizabeth St & Fulton St'
+      WHEN start_station_name = 'Laflin St &51st ST' THEN 'Laflin St & 51st St'
+      WHEN start_station_name = 'Woodlawn Ave & 63rd St - NE' THEN 'Woodlawn Ave & 63rd St N'
+      WHEN start_station_name = 'Woodlawn Ave & 63rd St - SE' THEN 'Woodlawn Ave & 63rd St S'
+      ELSE start_station_name
+    END,
+  end_station_name =
+    CASE
+      WHEN end_station_name = '63rd & Western Ave - north corner' THEN '63rd & Western Ave N'
+      WHEN end_station_name = '63rd & Western Ave - south corner' THEN '63rd & Western Ave S'
+      WHEN end_station_name = 'Broadway & Wilson - Truman College Vaccination Site' THEN 'Broadway & Wilson Ave'
+      WHEN end_station_name = 'Elizabeth (May) St & Fulton St' THEN 'Elizabeth St & Fulton St'
+      WHEN end_station_name = 'Laflin St &51st ST' THEN 'Laflin St & 51st St'
+      WHEN end_station_name = 'Woodlawn Ave & 63rd St - NE' THEN 'Woodlawn Ave & 63rd St N'
+      WHEN end_station_name = 'Woodlawn Ave & 63rd St - SE' THEN 'Woodlawn Ave & 63rd St S'
+      ELSE end_station_name
+    END
+WHERE 
+  start_station_name IN (
+    '63rd & Western Ave - north corner',
+    '63rd & Western Ave - south corner',
+    'Broadway & Wilson - Truman College Vaccination Site',
+    'Elizabeth (May) St & Fulton St',
+    'Laflin St &51st ST',
+    'Woodlawn Ave & 63rd St - NE',
+    'Woodlawn Ave & 63rd St - SE'
+  ) 
+  OR 
+  end_station_name IN (
+    '63rd & Western Ave - north corner',
+    '63rd & Western Ave - south corner',
+    'Broadway & Wilson - Truman College Vaccination Site',
+    'Elizabeth (May) St & Fulton St',
+    'Laflin St &51st ST',
+    'Woodlawn Ave & 63rd St - NE',
+    'Woodlawn Ave & 63rd St - SE'
+  )
 ```
-This statement modified 169,523 records.
 
-Now let's remove the following substrings of characters from the `start_station_name` field:
+This statement modified 28,008 rows in the dataset.
+
+Now, let's remove the following substrings of characters from the `start_station_name` and `end_station_name` fields:
 
 ```
 Public Rack -
@@ -719,24 +802,24 @@ City Rack -
  - midblock
  - midblock south
  (Temp)
- ```
+```
+
+We'll do that using regexâ€”thank you ChatGPT for this one:
 
 ```sql
 SELECT
   DISTINCT start_station_name,
-  REGEXP_REPLACE(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
+  REGEXP_REPLACE(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '') AS cleaned_station_name
 FROM `divvy_dataset.2022_tripdata_clean`
 WHERE REGEXP_CONTAINS(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
 
 UPDATE `divvy_dataset.2022_tripdata_clean`
 SET start_station_name = REGEXP_REPLACE(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
 WHERE REGEXP_CONTAINS(start_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
-```
-This statement updated 84151 rows. And now let's do the same for the `end_station_name` field:
-```sql
+
 SELECT
   DISTINCT end_station_name,
-  REGEXP_REPLACE(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
+  REGEXP_REPLACE(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '') AS cleaned_station_name
 FROM `divvy_dataset.2022_tripdata_clean`
 WHERE REGEXP_CONTAINS(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
 
@@ -744,17 +827,75 @@ UPDATE `divvy_dataset.2022_tripdata_clean`
 SET end_station_name = REGEXP_REPLACE(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))', '')
 WHERE REGEXP_CONTAINS(end_station_name, r'((Public|Pubic)\s+Rack\s+-\s+|City\s+Rack\s+-\s+|[*]| - Charging| - midblock(?:\s+south)?| \(Temp\))');
 ```
-This one updated 87,316 rows. Thank you ChatGPT.
 
-In total, ****** records have been updated and we've removed duplicate stations decreasing their total numbers from 1709 down to ****.
+The first `UPDATE` statement modified 84,146 rows from the dataset, while the second one modified 87,316 rows. 
 
-Finally, let's JOINS coordinate data starting with the zip code:
+The dataset has now 1379 stations, down to 1709.
+
+Now, let's finish things up by cleaning coordinate data and then adding the zip code for every stations,
+
+First, we will update the latitude and longitude fields with the following query:
+
+```sql
+UPDATE `divvy_dataset.2022_tripdata_clean` AS tripdata
+SET tripdata.start_lat = stations_data.lat, tripdata.start_lng = stations_data.long
+FROM `divvy_dataset.stations_data` AS stations_data
+WHERE tripdata.start_station_name = stations_data.station_name;
+
+UPDATE `divvy_dataset.2022_tripdata_clean` AS tripdata
+SET tripdata.end_lat = stations_data.lat, tripdata.end_lng = stations_data.long
+FROM `divvy_dataset.stations_data` AS stations_data
+WHERE tripdata.end_station_name = stations_data.station_name;
+```
+The first `UPDATE` statement modified  4,694,387 rows in the dataset, while the second one modified 4,653,520 rows.
+
+Let's quickly check that now every station has 1 coordinate data:
+
+```sql
+WITH coordinates_stations AS (
+  SELECT
+    start_station_name AS station_name,
+    CONCAT(start_lat, ' ', start_lng) AS coordinate
+  FROM `divvy_dataset.2022_tripdata_clean`
+  WHERE start_station_name IS NOT NULL AND start_lat IS NOT NULL AND start_lng IS NOT NULL
+  UNION DISTINCT -- UNION DISTINCT to get unique station names
+  SELECT
+    end_station_name AS station_name,
+    CONCAT(end_lat, ' ', end_lng) AS coordinates
+  FROM `divvy_dataset.2022_tripdata_clean`
+  WHERE end_station_name IS NOT NULL AND end_lat IS NOT NULL AND end_lng IS NOT NULL
+)
+SELECT
+  COUNT(station_name) AS stations_count,
+  COUNT(coordinate) AS coordinate_count
+FROM coordinates_stations;
+```
+
+Yay! There are now 1,379 unique coordinates, down from 1,952,581 coordinates:
+| stations_count | coordinate_count |
+| -------------- | ---------------- |
+| 1379 | 1379 |
+
+And now, let's add a `start_station_zip` and `end_station_zip` fields, and populate them by joining the zip code data from the `stations_data` table:
 
 ```sql
 ALTER TABLE `divvy_dataset.2022_tripdata_clean`
+ADD COLUMN start_station_zip STRING,
 ADD COLUMN end_station_zip STRING;
 
 UPDATE `divvy_dataset.2022_tripdata_clean` AS tripdata
-SET end_station_zip = CAST(stations_data.zip_code AS STRING)
+SET tripdata.start_station_zip = stations_data.zip_code
+FROM `divvy_dataset.stations_data` AS stations_data
+WHERE tripdata.start_station_name = stations_data.station_name;
+
+UPDATE `divvy_dataset.2022_tripdata_clean` AS tripdata
+SET tripdata.end_station_zip = stations_data.zip_code
 FROM `divvy_dataset.stations_data` AS stations_data
 WHERE tripdata.end_station_name = stations_data.station_name;
+```
+
+The first `UPDATE` statement updated  4,694,387 rows and the second one 4,653,520.
+
+Alright, we're finally done with the cleaning step and the dataset is now ready to be analyzed. That was honestly quite a lot of work, but now we can confidently use data that we know is trustworthy. Plus, we know this dataset inside out, which will make the analysis process a breeze!
+
+See you in part 2!
